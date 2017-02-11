@@ -1,8 +1,8 @@
 const pidusage = require('pidusage');
 const os = require('os');
 const sendMetrics = require('./send-metrics');
-
-module.exports = (io, span) => {
+let counter = 0;
+module.exports = (io, span, socketConfigStrategy) => {
   const defaultResponse = {
     2: 0,
     3: 0,
@@ -24,6 +24,19 @@ module.exports = (io, span) => {
     statObj.load = os.loadavg();
     statObj.timestamp = Date.now();
     span.os.push(statObj);
+
+    if(statObj.cpu >= 80){
+        counter++;
+        if(counter === 5){
+            socketConfigStrategy.emit('serverOverloaded', true);
+        }
+        setInterval(()=>{
+            if(counter > 20){
+                socketConfigStrategy.emit('serverOverloaded', true);
+                counter = 0;
+            }
+        }, 15000);
+    }
 
     const last = span.responses[span.responses.length - 1];
     if (!span.responses[0] || last.timestamp + (span.interval * 1000) < Date.now()) {
