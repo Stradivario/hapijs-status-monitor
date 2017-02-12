@@ -25,18 +25,19 @@ module.exports = (io, span, socketConfigStrategy) => {
     statObj.timestamp = Date.now();
     span.os.push(statObj);
 
-    if(statObj.cpu >= 80){
-        counter++;
-        if(counter === 5){
-            socketConfigStrategy.emit('serverOverloaded', true);
-        }
-        setInterval(()=>{
-            if(counter > 20){
-                socketConfigStrategy.emit('serverOverloaded', true);
-                counter = 0;
-            }
-        }, 15000);
-    }
+
+	  let response = {
+		  environment:process.env.NODE_ENV
+	  };
+
+      if(statObj.cpu >= 80){
+	      response.overloaded = true;
+      } else {
+	      response.overloaded = false;
+      }
+
+	  socketConfigStrategy.emit('serverStatus', response);
+
 
     const last = span.responses[span.responses.length - 1];
     if (!span.responses[0] || last.timestamp + (span.interval * 1000) < Date.now()) {
